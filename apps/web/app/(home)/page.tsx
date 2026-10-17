@@ -37,7 +37,7 @@ function SectionHeading({ eyebrow, title }: { eyebrow: string; title: string }) 
 /** A static preview of a notification email. */
 function EmailPreview() {
   return (
-    <figure className="flex flex-col gap-4 rounded-xl border border-border bg-surface p-6">
+    <figure className="flex min-w-0 flex-col gap-4 rounded-xl border border-border bg-surface p-6">
       <figcaption className="flex items-center gap-3 border-b border-border pb-4">
         <LogoMark size={32} />
         <div className="flex min-w-0 flex-col">
