@@ -1,15 +1,14 @@
 name: Deploy
 
-# Deploys images built by docker-build-push.yml to the VPS over SSH (see docs/deployment.md).
+# Deploys the `latest` images built by docker-build-push.yml to the VPS over SSH (see
+# docs/deployment.md). Called by release.yml after a merge to main; can also be run by hand.
 # The `production` environment holds:
-#   secrets: VPS_HOST, VPS_USER, VPS_SSH_KEY (private key), VPS_KNOWN_HOSTS (`ssh-keyscan <host>` output)
-#   variables: DEPLOY_PATH (optional, default /root/open-source-guru)
+#   secrets: VPS_HOST, VPS_USER, VPS_SSH_KEY (private key), VPS_KNOWN_HOSTS (`ssh-keyscan <host>` output),
+#            PRIVATE_KEY_GITHUB_APP (production GitHub App .pem; secret names can't start with GITHUB_)
+#   variables: VPS_PORT (optional, default 22), DEPLOY_PATH (optional, default /opt/open-source-guru)
 on:
+  workflow_call:
   workflow_dispatch:
-    inputs:
-      tag:
-        description: Image tag (a commit SHA built by the Docker Build Push workflow). Empty = the selected branch's latest commit.
-        required: false
 
 concurrency:
   group: deploy
@@ -21,15 +20,13 @@ permissions:
 
 jobs:
   deploy:
-    # Turned off for now: deployments are done by hand on the VPS (docs/deployment.md).
-    # Remove this line to deploy from GitHub Actions again.
-    if: false
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    environment: production
+    environment:
+      name: production
+      url: https://open-source-guru.dev
     env:
-      TAG: ${{ inputs.tag || github.sha }}
-      DEPLOY_PATH: ${{ vars.DEPLOY_PATH || '/root/open-source-guru' }}
+      DEPLOY_PATH: ${{ vars.DEPLOY_PATH || '/opt/open-source-guru' }}
     steps:
       - uses: actions/checkout@v5
 
@@ -39,13 +36,59 @@ jobs:
           KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
           VPS_HOST: ${{ secrets.VPS_HOST }}
           VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_PORT: ${{ vars.VPS_PORT || '22' }}
         run: |
           install -m 700 -d ~/.ssh
           printf '%s\n' "$SSH_KEY" > ~/.ssh/id_deploy
           chmod 600 ~/.ssh/id_deploy
           printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
-          printf 'Host vps\n  HostName %s\n  User %s\n  IdentityFile ~/.ssh/id_deploy\n  IdentitiesOnly yes\n' \
-            "$VPS_HOST" "$VPS_USER" > ~/.ssh/config
+          cat > ~/.ssh/config <<EOF
+          Host vps
+            HostName $VPS_HOST
+            Port $VPS_PORT
+            User $VPS_USER
+            IdentityFile ~/.ssh/id_deploy
+            IdentitiesOnly yes
+            BatchMode yes
+            StrictHostKeyChecking yes
+            ConnectTimeout 15
+          EOF
+
+      # Fails the job early, with a clear message, if the server can't be reached.
+      - name: Check the SSH connection
+        run: |
+          ssh vps bash -s -- "$DEPLOY_PATH" <<'EOF'
+          test -f "$1/.env" || { echo "$1/.env is missing: see docs/deployment.md" >&2; exit 1; }
+          EOF
+
+      # The key goes through ssh's stdin, never to disk on the runner or in a command line. The
+      # containers read it as uid 1000 (`node`), so the file must belong to that uid.
+      - name: Upload GitHub App private key
+        id: app-key
+        env:
+          APP_KEY: ${{ secrets.PRIVATE_KEY_GITHUB_APP }}
+        run: |
+          [ -n "$APP_KEY" ] || { echo "The PRIVATE_KEY_GITHUB_APP secret is empty" >&2; exit 1; }
+          script=$(cat <<'EOF'
+          set -eu
+          umask 077
+          mkdir -p "$DEPLOY_PATH/secrets"
+          cd "$DEPLOY_PATH/secrets"
+          cat > github-app.pem.new
+          if cmp -s github-app.pem.new github-app.pem; then
+            rm github-app.pem.new
+            echo unchanged
+            exit 0
+          fi
+          chmod 400 github-app.pem.new
+          if [ "$(id -u)" != 1000 ]; then sudo -n chown 1000 github-app.pem.new; fi
+          mv -f github-app.pem.new github-app.pem
+          echo changed
+          EOF
+          )
+          result=$(printf '%s\n' "$APP_KEY" | ssh vps "DEPLOY_PATH='$DEPLOY_PATH'; $script")
+          echo "GitHub App key: $result"
+          echo "changed=$([ "$result" = changed ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
 
       - name: Upload compose file
         run: scp docker-compose.prod.yml "vps:$DEPLOY_PATH/docker-compose.prod.yml"
@@ -54,26 +97,21 @@ jobs:
         env:
           GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           ACTOR: ${{ github.actor }}
-        # The tag is saved in the server's .env, so manual `docker compose` commands there
-        # keep running the deployed version. The registry login only lasts for this job.
+          KEY_CHANGED: ${{ steps.app-key.outputs.changed }}
+        # The registry login only lasts for this job. `--wait` fails if a container doesn't
+        # become healthy. The app reads the GitHub App key at startup, so a new key needs api and
+        # worker recreated. Each ssh call closes its connection when its command ends.
         run: |
           printf '%s\n' "$GHCR_TOKEN" | ssh vps docker login ghcr.io -u "$ACTOR" --password-stdin
-          ssh vps bash -s -- "$DEPLOY_PATH" "$TAG" <<'EOF'
+          ssh vps bash -s -- "$DEPLOY_PATH" "$KEY_CHANGED" <<'EOF'
           set -euo pipefail
           trap 'docker logout ghcr.io >/dev/null' EXIT
           cd "$1"
-          sed -i "s/^IMAGE_TAG=.*/IMAGE_TAG=$2/" .env
-          grep -q "^IMAGE_TAG=$2$" .env || { echo "IMAGE_TAG is missing from .env" >&2; exit 1; }
-          docker compose -f docker-compose.prod.yml pull --quiet
-          docker compose -f docker-compose.prod.yml up -d --remove-orphans --wait --wait-timeout 180
+          docker compose -f docker-compose.prod.yml up -d --pull always --remove-orphans \
+            --wait --wait-timeout 180
+          if [ "$2" = true ]; then
+            docker compose -f docker-compose.prod.yml up -d --force-recreate --no-deps \
+              --wait --wait-timeout 180 api worker
+          fi
           docker image prune -f
           EOF
-
-      - uses: actions/setup-node@v5
-        with:
-          node-version: 24
-
-      # Search engines recrawl the site (apps/web/scripts/indexnow.ts). Not worth failing a deploy.
-      - name: Submit the sitemap to IndexNow
-        continue-on-error: true
-        run: node apps/web/scripts/indexnow.ts
