@@ -30,7 +30,7 @@ export function htmlPage(title: string, body: string, logoUrl: string): string {
 </style>
 </head>
 <body>
-<header><img src="${escapeHtml(logoUrl)}" alt="" width="32" height="32"><div>Open Source <span>Guru</span></div></header>
+<header><img src="${escapeHtml(logoUrl)}" alt="Open Source Guru Logo" width="32" height="32"><div>Open Source <span>Guru</span></div></header>
 <main>
 <h1>${escapeHtml(title)}</h1>
 ${body}

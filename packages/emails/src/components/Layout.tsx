@@ -129,7 +129,13 @@ export function Layout({ preview, children, footerLinks = [], footerNote, logoUr
           <Section style={{ padding: "0 4px 16px" }}>
             <Row>
               <Column style={{ width: 40, verticalAlign: "middle" }}>
-                <Img src={logoUrl} alt="" width={32} height={32} style={{ borderRadius: 8 }} />
+                <Img
+                  src={logoUrl}
+                  alt="Open Source Guru Logo"
+                  width={32}
+                  height={32}
+                  style={{ borderRadius: 8 }}
+                />
               </Column>
               <Column style={{ verticalAlign: "middle" }}>
                 <Text

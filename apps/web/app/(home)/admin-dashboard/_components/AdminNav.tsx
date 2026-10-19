@@ -28,7 +28,7 @@ export function AdminNav({
       <div className="flex items-center gap-3">
         {image ? (
           // biome-ignore lint/performance/noImgElement: small external avatar
-          <img src={image} alt="" width={40} height={40} className="size-10 rounded-full" />
+          <img src={image} alt="Profile" width={40} height={40} className="size-10 rounded-full" />
         ) : (
           <span className="size-10 rounded-full bg-surface-muted" />
         )}
