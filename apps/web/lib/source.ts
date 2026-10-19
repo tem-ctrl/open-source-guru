@@ -1,8 +1,9 @@
-import { loader, multiple } from "fumadocs-core/source";
+import { type InferPageType, loader, multiple } from "fumadocs-core/source";
 import { metaSchema, pageSchema } from "fumadocs-core/source/schema";
 import { defineDocs } from "fumadocs-mdx/macro";
 import { ROUTES } from "./constants";
 import { openapi } from "./openapi";
+import { siteUrl } from "./shared";
 
 const slugify = (text: string) =>
   text
@@ -12,7 +13,8 @@ const slugify = (text: string) =>
 
 const docs = defineDocs({
   dir: "content/docs",
-  docs: { schema: pageSchema },
+  // Processed Markdown (MDX components flattened) feeds llms.txt and the .mdx page copies.
+  docs: { schema: pageSchema, postprocess: { includeProcessedMarkdown: { headingIds: false } } },
   meta: { schema: metaSchema },
 });
 
@@ -29,3 +31,27 @@ export const source = loader(
   }),
   { baseUrl: ROUTES.docs, plugins: [openapi.loaderPlugin()] },
 );
+
+type DocsPage = InferPageType<typeof source>;
+
+/** The page's Open Graph image (app/og/docs/[...slug]/route.tsx). */
+export function docsOgImageUrl(page: DocsPage): string {
+  return `/og/docs/${[...page.slugs, "image.png"].join("/")}`;
+}
+
+/** Root-relative Markdown links made absolute: LLM tools read these files out of context. */
+const absoluteLinks = (markdown: string) => markdown.replace(/\]\(\//g, `](${siteUrl}/`);
+
+/** The page as Markdown, for LLMs: llms-full.txt and /docs/<page>.mdx. */
+export async function getLLMText(page: DocsPage): Promise<string> {
+  const heading = `# ${page.data.title} (${siteUrl}${page.url})`;
+  const intro = page.data.description ? `\n\n${page.data.description}` : "";
+  // API reference pages are generated from the OpenAPI document: list the endpoint instead.
+  if (page.data.type === "openapi") {
+    const endpoints = (page.data.getOpenAPIPageProps().operations ?? []).map(
+      ({ method, path }) => `- \`${method.toUpperCase()} ${siteUrl}/api${path}\``,
+    );
+    return `${heading}${intro}\n\n${endpoints.join("\n")}\n\nRequest and response schemas: ${siteUrl}/api/docs/json`;
+  }
+  return `${heading}${intro}\n\n${absoluteLinks(await page.data.getText("processed"))}`;
+}

@@ -1,8 +1,10 @@
 import { RootProvider } from "fumadocs-ui/provider/next";
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Bricolage_Grotesque, Geist, Geist_Mono } from "next/font/google";
 import { AuthProvider } from "@/components/auth/AuthProvider";
 import { Toaster } from "@/components/ui/Toaster";
+import { pageMetadata } from "@/lib/seo";
+import { appName, siteDescription, siteUrl, tagline } from "@/lib/shared";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -23,14 +25,44 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  // Makes Open Graph image URLs (e.g. on public profiles) absolute.
-  metadataBase: new URL("https://open-source-guru.dev"),
+  // Makes canonical and Open Graph image URLs absolute.
+  metadataBase: new URL(siteUrl),
   title: {
-    default: "Open Source Guru",
-    template: "%s | Open Source Guru",
+    default: `${appName}: get emailed about good first issues on GitHub`,
+    template: `%s | ${appName}`,
   },
-  description:
-    "Get notified when issues you can help with appear in open-source repos you follow, and track your Open Source Contributions.",
+  description: siteDescription,
+  applicationName: appName,
+  keywords: [
+    "good first issue",
+    "help wanted",
+    "open source",
+    "GitHub issues",
+    "GitHub notifications",
+    "first contribution",
+    "open-source contributions",
+    "contribution streak",
+    "contribution tracker",
+    "hacktoberfest",
+  ],
+  authors: [{ name: "Gilbert Temgoua", url: "https://github.com/tem-ctrl" }],
+  creator: "Gilbert Temgoua",
+  category: "technology",
+  // Defaults for pages without their own (the image comes from app/opengraph-image.tsx).
+  // Pages that set `openGraph` replace this object: build theirs with `pageMetadata`.
+  ...pageMetadata({ title: `${appName}: ${tagline}`, description: siteDescription, image: null }),
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: { index: true, follow: true, "max-image-preview": "large", "max-snippet": -1 },
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#FBF7FD" },
+    { media: "(prefers-color-scheme: dark)", color: "#12012E" },
+  ],
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

@@ -13,6 +13,8 @@ const nextConfig: NextConfig = {
   // Self-hosted with Docker; trace files from the monorepo root.
   output: "standalone",
   outputFileTracingRoot: path.join(import.meta.dirname, "../.."),
+  // Read with fs by the Open Graph images (lib/og.tsx); profile cards render on request.
+  outputFileTracingIncludes: { "/u/**": ["./assets/fonts/*.ttf"] },
   turbopack: {
     rules: {
       "*.css": {
@@ -31,6 +33,9 @@ const nextConfig: NextConfig = {
         source: "/u/:login/badge.svg",
         destination: `${apiInternalUrl}/v1/public/profiles/:login/badge.svg`,
       },
+      // Docs pages as Markdown for LLMs (see app/llms.mdx).
+      { source: "/docs.mdx", destination: "/llms.mdx/docs" },
+      { source: "/docs/:path*.mdx", destination: "/llms.mdx/docs/:path*" },
       { source: "/api/auth/:path*", destination: `${apiInternalUrl}/api/auth/:path*` },
       { source: "/api/:path*", destination: `${apiInternalUrl}/:path*` },
     ];

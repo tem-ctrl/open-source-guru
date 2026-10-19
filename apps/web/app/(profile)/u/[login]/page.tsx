@@ -6,10 +6,13 @@ import { Breakdown } from "@/components/contributions/Breakdown";
 import { ContributionGraph } from "@/components/contributions/ContributionGraph";
 import { StreakSummary } from "@/components/contributions/StreakSummary";
 import { YearPicker } from "@/components/contributions/YearPicker";
+import { JsonLd } from "@/components/JsonLd";
 import { buttonClasses } from "@/components/ui/Button";
 import { ROUTES } from "@/lib/constants";
 import { contributionsText, parseYear } from "@/lib/contributions";
-import { fetchProfile } from "@/lib/profile";
+import { fetchProfile, type PublicProfile } from "@/lib/profile";
+import { pageMetadata } from "@/lib/seo";
+import { siteUrl } from "@/lib/shared";
 import { OwnerBadge } from "./_components/OwnerBadge";
 import { PublicGoals } from "./_components/PublicGoals";
 
@@ -23,9 +26,30 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const description = `${contributionsText(profile.stats.total)} in the last year: work on other people's open-source projects.`;
   return {
     title,
-    description,
-    openGraph: { title, description },
-    twitter: { card: "summary_large_image" },
+    ...pageMetadata({
+      title: `${title}: Open Source Contributions`,
+      description: profile.bio ? `${description} ${profile.bio}` : description,
+      path: ROUTES.profile(profile.login),
+      openGraphType: "profile",
+      image: null, // opengraph-image.tsx next to this page
+    }),
+  };
+}
+
+/** schema.org: a profile page about a person, linked to their GitHub account. */
+function profileStructuredData(profile: PublicProfile) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "ProfilePage",
+    url: `${siteUrl}${ROUTES.profile(profile.login)}`,
+    mainEntity: {
+      "@type": "Person",
+      name: profile.name || profile.login,
+      alternateName: profile.login,
+      ...(profile.bio && { description: profile.bio }),
+      ...(profile.avatarUrl && { image: profile.avatarUrl }),
+      sameAs: [profile.githubUrl],
+    },
   };
 }
 
@@ -50,6 +74,7 @@ async function Profile({ params, searchParams }: Props) {
 
   return (
     <div className="flex flex-col gap-8">
+      <JsonLd data={profileStructuredData(profile)} />
       <header className="flex flex-wrap items-center gap-5">
         {profile.avatarUrl ? (
           // biome-ignore lint/performance/noImgElement: avatar from GitHub's CDN

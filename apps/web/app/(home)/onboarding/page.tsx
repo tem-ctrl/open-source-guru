@@ -6,7 +6,7 @@ import { readPendingSubscription, withPendingSubscription } from "@/lib/pending-
 import { getCurrentUser } from "@/lib/session";
 import { OnboardingForm } from "./_components/OnboardingForm";
 
-export const metadata: Metadata = { title: "Welcome" };
+export const metadata: Metadata = { title: "Welcome", robots: { index: false } };
 
 export default function OnboardingPage(props: PageProps<"/onboarding">) {
   return (

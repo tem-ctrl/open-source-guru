@@ -37,6 +37,11 @@ and migrate differ only by command) and `web`. Their Dockerfiles are in [`docker
    turned off for now (`if: false` on its job); remove that line and set up the `production`
    environment's secrets to use it.
 
+3. If public pages changed (docs, home page), run the **IndexNow** workflow from the Actions tab
+   so Bing and other IndexNow search engines recrawl them. Leave its input empty to submit the
+   whole sitemap, or list the changed paths. Locally: `pnpm --filter @osg/web indexnow`. The Deploy
+   workflow does this on its own.
+
 ## Shared nginx
 
 TLS and routing come from the nginx installed on the VPS and shared by its apps. Its configuration

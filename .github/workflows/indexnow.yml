@@ -1,0 +1,28 @@
+name: IndexNow
+
+# Asks Bing, Yandex and other IndexNow search engines to recrawl the site. Run it after a
+# deploy (apps/web/scripts/indexnow.ts). No dependencies: the script only uses fetch.
+on:
+  workflow_dispatch:
+    inputs:
+      paths:
+        description: Space-separated paths to submit (e.g. /docs/streaks /docs/faq). Empty = every URL in the sitemap.
+        required: false
+
+permissions:
+  contents: read
+
+jobs:
+  submit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+      - name: Submit to IndexNow
+        env:
+          PATHS: ${{ inputs.paths }}
+        # PATHS is split into arguments on purpose (unquoted).
+        run: node apps/web/scripts/indexnow.ts $PATHS
