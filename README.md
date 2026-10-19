@@ -16,20 +16,6 @@
 Get email alerts when issues in open-source repos you follow are opened with, or given, labels like
 "help wanted", and track your Open Source Contributions, through a web app or an API.
 
-## Repository layout
-
-```
-apps/
-  api/       Fastify REST API
-  worker/    pg-boss background jobs
-  web/       Next.js web app + Fumadocs docs
-packages/
-  core/      Shared code: environment validation, database schema and client, GitHub client,
-             change detection, subscription matching, email sending, signed email links
-  emails/    React Email templates (compiled to dist/; the only package with a build step)
-docs/        Contributor documentation (e.g. GitHub App setup, deployment)
-```
-
 ## Local development
 
 Everything runs on your machine: emails are captured by Mailpit and never reach a real inbox.
@@ -194,12 +180,6 @@ Everyone taking part is expected to follow our [Code of Conduct](CODE_OF_CONDUCT
 - Questions and discussion: join our [Discord server](https://discord.gg/PfVvJymRK)
 - Bugs and ideas: [open an issue](https://github.com/tem-ctrl/open-source-guru/issues/new/choose)
 - Security vulnerabilities: report them privately, as described in [SECURITY.md](SECURITY.md)
-
-## SEO & GEO
-
-The site is 100% wrawlable by LLMs: [GEO crawlability score: 100%](https://llmpulse.ai/geo-crawlability-checker/Esj7bPVsXau_LL4enzcabmGx9ZHCjqQLvzrvClBxDp0?utm_source=llmpulse&utm_medium=email&utm_campaign=crawlability-report-confirmation)
-
-<a href="https://www.seobility.net/en/seocheck/check?url=https%3A%2F%2Fopen-source-guru.dev%2F"><img src="https://app.seobility.net/widget/widget.png?url=https%3A%2F%2Fopen-source-guru.dev%2F" alt="Seobility Score for open-source-guru.dev"></a>
 
 ## License
 
