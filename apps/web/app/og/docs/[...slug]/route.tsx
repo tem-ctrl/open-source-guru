@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { ImageResponse } from "next/og";
-import { OgFooter, OgFrame, ogColors } from "@/lib/og";
+import { OgFooter, OgFrame, ogColors, ogDisplay, ogImageOptions } from "@/lib/og";
 import { docsOgImageUrl, source } from "@/lib/source";
 
 // One Open Graph card per docs page, generated at build time. The last segment is the
@@ -16,9 +16,9 @@ export async function GET(_request: Request, { params }: RouteContext<"/og/docs/
 
   return new ImageResponse(
     <OgFrame>
-      <span style={{ fontSize: 28, color: ogColors.coral, fontWeight: 800 }}>Documentation</span>
+      <span style={{ fontSize: 28, color: ogColors.coral, ...ogDisplay }}>Documentation</span>
       <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-        <span style={{ fontSize: 80, fontWeight: 800, lineHeight: 1.05, letterSpacing: -2 }}>
+        <span style={{ fontSize: 80, ...ogDisplay, lineHeight: 1.05, letterSpacing: -2 }}>
           {page.data.title}
         </span>
         {page.data.description && (
@@ -29,6 +29,6 @@ export async function GET(_request: Request, { params }: RouteContext<"/og/docs/
       </div>
       <OgFooter label="open-source-guru.dev/docs" />
     </OgFrame>,
-    { width: 1200, height: 630 },
+    await ogImageOptions(),
   );
 }

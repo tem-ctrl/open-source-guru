@@ -1,5 +1,5 @@
 import { ImageResponse } from "next/og";
-import { OgFooter, OgFrame, ogColors } from "@/lib/og";
+import { OgFooter, OgFrame, ogColors, ogDisplay, ogImageOptions } from "@/lib/og";
 import { siteImageAlt, tagline } from "@/lib/shared";
 
 // The default card when any page without its own image is shared.
@@ -9,7 +9,7 @@ export const contentType = "image/png";
 
 const labels = ["good first issue", "help wanted"];
 
-export default function Image() {
+export default async function Image() {
   return new ImageResponse(
     <OgFrame>
       <div style={{ display: "flex", gap: 16 }}>
@@ -23,7 +23,7 @@ export default function Image() {
               background: ogColors.coral,
               color: ogColors.plum,
               fontSize: 28,
-              fontWeight: 800,
+              ...ogDisplay,
             }}
           >
             {label}
@@ -32,7 +32,7 @@ export default function Image() {
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-        <span style={{ fontSize: 84, fontWeight: 800, lineHeight: 1.05, letterSpacing: -2 }}>
+        <span style={{ fontSize: 84, ...ogDisplay, lineHeight: 1.05, letterSpacing: -2 }}>
           {tagline}
         </span>
         <span style={{ fontSize: 34, color: ogColors.wisteria, lineHeight: 1.35 }}>
@@ -43,6 +43,6 @@ export default function Image() {
 
       <OgFooter label="Free and open source" />
     </OgFrame>,
-    size,
+    await ogImageOptions(),
   );
 }

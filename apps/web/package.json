@@ -8,7 +8,8 @@
     "build": "next build",
     "start": "next start",
     "typecheck": "next typegen && tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "indexnow": "node scripts/indexnow.ts"
   },
   "dependencies": {
     "fumadocs-core": "~16.17.0",

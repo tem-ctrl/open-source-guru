@@ -1,6 +1,6 @@
 import { ImageResponse } from "next/og";
 import { formatNumber } from "@/lib/contributions";
-import { OgFooter, OgFrame, ogColors } from "@/lib/og";
+import { OgFooter, OgFrame, ogColors, ogDisplay, ogImageOptions } from "@/lib/og";
 import { fetchProfile } from "@/lib/profile";
 
 // The card shown when a profile link is shared.
@@ -29,7 +29,7 @@ export default async function Image({ params }: { params: Promise<{ login: strin
           />
         ) : null}
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          <span style={{ fontSize: 60, fontWeight: 800 }}>
+          <span style={{ fontSize: 60, ...ogDisplay }}>
             {profile ? profile.name || profile.login : "Open Source Guru"}
           </span>
           {profile && <span style={{ fontSize: 32, color: WISTERIA }}>@{profile.login}</span>}
@@ -39,7 +39,7 @@ export default async function Image({ params }: { params: Promise<{ login: strin
       {profile ? (
         <div style={{ display: "flex", alignItems: "flex-end", gap: 64 }}>
           <div style={{ display: "flex", flexDirection: "column" }}>
-            <span style={{ fontSize: 120, fontWeight: 800, lineHeight: 1 }}>
+            <span style={{ fontSize: 120, ...ogDisplay, lineHeight: 1 }}>
               {formatNumber(profile.stats.total)}
             </span>
             <span style={{ fontSize: 32, color: WISTERIA }}>
@@ -55,7 +55,7 @@ export default async function Image({ params }: { params: Promise<{ login: strin
                 background: CORAL,
                 color: PLUM,
                 fontSize: 32,
-                fontWeight: 800,
+                ...ogDisplay,
               }}
             >
               {formatNumber(streak.current)}-{profile.stats.streaks.period} streak
@@ -70,6 +70,6 @@ export default async function Image({ params }: { params: Promise<{ login: strin
 
       <OgFooter />
     </OgFrame>,
-    size,
+    await ogImageOptions(),
   );
 }

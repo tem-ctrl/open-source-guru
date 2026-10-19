@@ -1,5 +1,12 @@
 import type { InferPageType } from "fumadocs-core/source";
-import { DocsBody, DocsDescription, DocsPage, DocsTitle } from "fumadocs-ui/layouts/docs/page";
+import {
+  DocsBody,
+  DocsDescription,
+  DocsPage,
+  DocsTitle,
+  MarkdownCopyButton,
+  ViewOptionsPopover,
+} from "fumadocs-ui/layouts/docs/page";
 import { createRelativeLink } from "fumadocs-ui/mdx";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
@@ -9,7 +16,7 @@ import { JsonLd } from "@/components/JsonLd";
 import { getMDXComponents } from "@/components/MdxComponents";
 import { ROUTES } from "@/lib/constants";
 import { pageMetadata } from "@/lib/seo";
-import { appName, siteUrl } from "@/lib/shared";
+import { appName, githubRepoUrl, siteUrl } from "@/lib/shared";
 import { docsOgImageUrl, source } from "@/lib/source";
 
 type Props = PageProps<"/docs/[[...slug]]">;
@@ -35,6 +42,7 @@ async function DocsContent({ params }: Pick<Props, "params">) {
         {structuredData}
         <DocsTitle>{page.data.title}</DocsTitle>
         <DocsDescription>{page.data.description}</DocsDescription>
+        <PageActions page={page} />
         <DocsBody className="osg-openapi">
           <ApiPage {...page.data.getOpenAPIPageProps()} />
         </DocsBody>
@@ -49,10 +57,38 @@ async function DocsContent({ params }: Pick<Props, "params">) {
       {structuredData}
       <DocsTitle>{page.data.title}</DocsTitle>
       <DocsDescription>{page.data.description}</DocsDescription>
+      <PageActions
+        page={page}
+        githubUrl={`${githubRepoUrl}/blob/main/apps/web/content/docs/${page.path}`}
+      />
       <DocsBody>
         <MDX components={getMDXComponents({ a: createRelativeLink(source, page) })} />
       </DocsBody>
     </DocsPage>
+  );
+}
+
+/**
+ * Copy the page as Markdown, or open it in ChatGPT, Claude, etc. The prompts link to the
+ * production URL; API reference pages have no source file, so no GitHub link.
+ */
+function PageActions({
+  page,
+  githubUrl,
+}: {
+  page: InferPageType<typeof source>;
+  githubUrl?: string;
+}) {
+  const markdownUrl = `${page.url}.mdx`;
+  return (
+    <div className="flex flex-row items-center gap-2 border-b pb-6">
+      <MarkdownCopyButton markdownUrl={markdownUrl} />
+      <ViewOptionsPopover
+        markdownUrl={markdownUrl}
+        githubUrl={githubUrl}
+        pageUrl={`${siteUrl}${page.url}`}
+      />
+    </div>
   );
 }
 

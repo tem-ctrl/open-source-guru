@@ -13,6 +13,8 @@ const nextConfig: NextConfig = {
   // Self-hosted with Docker; trace files from the monorepo root.
   output: "standalone",
   outputFileTracingRoot: path.join(import.meta.dirname, "../.."),
+  // Read with fs by the Open Graph images (lib/og.tsx); profile cards render on request.
+  outputFileTracingIncludes: { "/u/**": ["./assets/fonts/*.ttf"] },
   turbopack: {
     rules: {
       "*.css": {

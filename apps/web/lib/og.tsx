@@ -1,5 +1,7 @@
 // Building blocks for the Open Graph cards rendered with next/og (Sunset Violet colors).
 // next/og supports a subset of CSS: every element with children needs `display: flex`.
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
 import type { ReactNode } from "react";
 import { appName } from "./shared";
 
@@ -11,6 +13,33 @@ export const ogColors = {
   violetBright: "#B57BE0",
   coral: "#E47676",
 } as const;
+
+/** The display face (headings and wordmark on the site), for headlines and the wordmark. */
+export const ogDisplay = { fontFamily: "Bricolage Grotesque", fontWeight: 800 } as const;
+
+let fonts: Promise<[Buffer, Buffer]> | undefined;
+const fontFile = (name: string) => readFile(join(process.cwd(), "assets/fonts", name));
+
+/**
+ * Size and fonts for `ImageResponse`: the site's faces, Geist for text and Bricolage Grotesque
+ * for display. next/og needs TTF/OTF data (not the site's WOFF2), read from assets/fonts
+ * (next.config.ts includes it in the standalone output); passing fonts replaces its own.
+ */
+export async function ogImageOptions() {
+  fonts ??= Promise.all([
+    fontFile("Geist-Regular.ttf"),
+    fontFile("BricolageGrotesque-ExtraBold.ttf"),
+  ]);
+  const [geist, bricolage] = await fonts;
+  return {
+    width: 1200,
+    height: 630,
+    fonts: [
+      { name: "Geist", data: geist, weight: 400 as const },
+      { name: ogDisplay.fontFamily, data: bricolage, weight: 800 as const },
+    ],
+  };
+}
 
 /** The Branch Sprout mark, drawn for a dark background. */
 export function OgLogo({ size = 56 }: { size?: number }) {
@@ -43,9 +72,9 @@ export function OgFooter({ label }: { label?: string }) {
     >
       <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
         <OgLogo />
-        {appName}
+        <span style={{ ...ogDisplay, color: ogColors.petal }}>{appName}</span>
       </div>
-      {label && <span style={{ fontFamily: "monospace", fontSize: 24 }}>{label}</span>}
+      {label && <span style={{ fontSize: 24 }}>{label}</span>}
     </div>
   );
 }
@@ -63,7 +92,7 @@ export function OgFrame({ children }: { children: ReactNode }) {
         padding: 72,
         background: `linear-gradient(135deg, ${ogColors.plum} 0%, ${ogColors.violet} 100%)`,
         color: ogColors.petal,
-        fontFamily: "sans-serif",
+        fontFamily: "Geist",
       }}
     >
       {children}
