@@ -32,6 +32,7 @@ x-backend: &backend
 services:
   web:
     image: ghcr.io/tem-ctrl/open-source-guru-web:latest
+    container_name: osg-web
     restart: unless-stopped
     environment:
       API_INTERNAL_URL: http://api:4000
@@ -54,6 +55,7 @@ services:
 
   api:
     <<: *backend
+    constainer_name: osg-api
     command: ["node", "apps/api/src/server.ts"]
     depends_on:
       migrate:
@@ -77,6 +79,7 @@ services:
 
   worker:
     <<: *backend
+    container_name: osg-worker
     command: ["node", "apps/worker/src/worker.ts"]
     depends_on:
       migrate:
@@ -89,6 +92,7 @@ services:
 
   migrate:
     <<: *backend
+    container_name: osg-migrate
     command: ["node", "packages/core/src/db/migrate.ts"]
     restart: "no"
     depends_on:
@@ -99,6 +103,7 @@ services:
 
   postgres:
     image: postgres:18-alpine
+    container_name: osg-postgres
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
