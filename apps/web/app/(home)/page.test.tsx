@@ -32,7 +32,7 @@ describe("HomePage", () => {
     expect(html).toContain('href="https://github.com/tem-ctrl/open-source-guru"');
     expect(html).toContain('target="_blank"');
     expect(html).toContain('rel="noopener noreferrer"');
-    expect(html).toContain("View it on GitHub");
+    expect(html).toContain("View on GitHub");
   });
 
   it("renders footer navigation links to docs and authentication", () => {
