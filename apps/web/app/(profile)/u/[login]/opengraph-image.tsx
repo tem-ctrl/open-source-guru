@@ -1,28 +1,14 @@
 import { ImageResponse } from "next/og";
 import { formatNumber } from "@/lib/contributions";
+import { OgFooter, OgFrame, ogColors } from "@/lib/og";
 import { fetchProfile } from "@/lib/profile";
 
-// The card shown when a profile link is shared (Sunset Violet colors).
+// The card shown when a profile link is shared.
 export const alt = "Open Source Contributions on Open Source Guru";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
-const PLUM = "#1F024C";
-const PETAL = "#F6EEFB";
-const WISTERIA = "#BCA7D3";
-const VIOLET_BRIGHT = "#B57BE0";
-const CORAL = "#E47676";
-
-function Logo() {
-  return (
-    <svg width="56" height="56" viewBox="0 0 112 112" aria-hidden="true">
-      <path d="M56 56C56 34 40 22 18 22 18 44 34 56 56 56Z" fill={VIOLET_BRIGHT} />
-      <path d="M56 50C56 28 72 14 96 16 96 38 80 50 56 50Z" fill={CORAL} />
-      <path d="M56 52V72M56 100V104" stroke={PETAL} strokeWidth="10" strokeLinecap="round" />
-      <circle cx="56" cy="86" r="10" fill="none" stroke={PETAL} strokeWidth="8" />
-    </svg>
-  );
-}
+const { plum: PLUM, wisteria: WISTERIA, violetBright: VIOLET_BRIGHT, coral: CORAL } = ogColors;
 
 export default async function Image({ params }: { params: Promise<{ login: string }> }) {
   const { login } = await params;
@@ -30,19 +16,7 @@ export default async function Image({ params }: { params: Promise<{ login: strin
   const streak = profile ? profile.stats.streaks[profile.stats.streaks.period] : null;
 
   return new ImageResponse(
-    <div
-      style={{
-        width: "100%",
-        height: "100%",
-        display: "flex",
-        flexDirection: "column",
-        justifyContent: "space-between",
-        padding: 72,
-        background: `linear-gradient(135deg, ${PLUM} 0%, #45056E 100%)`,
-        color: PETAL,
-        fontFamily: "sans-serif",
-      }}
-    >
+    <OgFrame>
       <div style={{ display: "flex", alignItems: "center", gap: 32 }}>
         {profile?.avatarUrl ? (
           // biome-ignore lint/performance/noImgElement: rendered to an image by next/og
@@ -94,13 +68,8 @@ export default async function Image({ params }: { params: Promise<{ login: strin
         </span>
       )}
 
-      <div
-        style={{ display: "flex", alignItems: "center", gap: 16, fontSize: 28, color: WISTERIA }}
-      >
-        <Logo />
-        Open Source Guru
-      </div>
-    </div>,
+      <OgFooter />
+    </OgFrame>,
     size,
   );
 }

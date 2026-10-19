@@ -5,6 +5,7 @@ import { Suspense } from "react";
 import { LogoMark } from "@/components/Logo";
 import { ROUTES } from "@/lib/constants";
 import { readPendingSubscription, withPendingSubscription } from "@/lib/pending-subscription";
+import { pageMetadata } from "@/lib/seo";
 import { getCurrentUser } from "@/lib/session";
 import { appName } from "@/lib/shared";
 import { SignInButton } from "./_components/SignInButton";
@@ -12,7 +13,11 @@ import { SignInErrorToast } from "./_components/SignInErrorToast";
 
 export const metadata: Metadata = {
   title: "Sign in",
-  description: `Sign in to ${appName} with your GitHub account.`,
+  ...pageMetadata({
+    title: `Sign in | ${appName}`,
+    description: `Sign in to ${appName} with your GitHub account to follow repositories and get emailed about issues you can help with.`,
+    path: ROUTES.signIn,
+  }),
 };
 
 /** Friendly messages for the error codes Better Auth and GitHub send back. */

@@ -1,12 +1,54 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { AccountLink } from "@/components/auth/AccountLink";
+import { JsonLd } from "@/components/JsonLd";
 import { LogoMark } from "@/components/Logo";
 import { buttonClasses } from "@/components/ui/Button";
 import { ROUTES } from "@/lib/constants";
-import { appName, githubRepoUrl } from "@/lib/shared";
+import { pageMetadata } from "@/lib/seo";
+import { appName, githubRepoUrl, siteDescription, siteUrl, tagline } from "@/lib/shared";
 import { HeroActions } from "./_components/HeroActions";
 import { RepoTeaser } from "./_components/RepoTeaser";
 import { ResourcesSection } from "./_components/ResourcesSection";
+
+export const metadata: Metadata = pageMetadata({
+  title: `${appName}: ${tagline}`,
+  description: siteDescription,
+  path: ROUTES.home,
+});
+
+/** schema.org: the site and the app itself, for search engines and AI crawlers. */
+const structuredData = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebSite",
+      "@id": `${siteUrl}/#website`,
+      url: siteUrl,
+      name: appName,
+      description: siteDescription,
+    },
+    {
+      "@type": "WebApplication",
+      "@id": `${siteUrl}/#app`,
+      name: appName,
+      url: siteUrl,
+      description: siteDescription,
+      applicationCategory: "DeveloperApplication",
+      operatingSystem: "Any",
+      isAccessibleForFree: true,
+      offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+      featureList: [
+        "Email alerts for GitHub issues labeled good first issue or help wanted",
+        "Instant, hourly or daily digest emails",
+        "Open-source contribution graph, streaks and goals",
+        "Public profile and README badge",
+        "REST API with personal API keys",
+      ],
+      sameAs: [githubRepoUrl],
+    },
+  ],
+};
 
 const steps = [
   {
@@ -67,6 +109,7 @@ function EmailPreview() {
 export default function HomePage() {
   return (
     <main className="flex flex-1 flex-col">
+      <JsonLd data={structuredData} />
       <section className="mx-auto grid w-full max-w-6xl gap-10 px-4 py-14 sm:px-6 sm:py-20 lg:grid-cols-[1fr_1.1fr] lg:items-center">
         <div className="flex flex-col gap-6">
           <p className="inline-flex w-fit items-center gap-2 rounded-full bg-chip px-3 py-1 text-sm font-semibold text-chip-foreground">

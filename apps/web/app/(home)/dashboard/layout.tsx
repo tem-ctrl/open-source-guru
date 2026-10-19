@@ -7,6 +7,7 @@ import { DashboardNav } from "./_components/DashboardNav";
 
 export const metadata: Metadata = {
   title: { default: "Dashboard", template: "%s | Dashboard | Open Source Guru" },
+  robots: { index: false },
 };
 
 export default function DashboardLayout({ children }: LayoutProps<"/dashboard">) {
