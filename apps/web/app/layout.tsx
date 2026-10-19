@@ -28,7 +28,8 @@ export const metadata: Metadata = {
   // Makes canonical and Open Graph image URLs absolute.
   metadataBase: new URL(siteUrl),
   title: {
-    default: `${appName}: get emailed about good first issues on GitHub`,
+    // Under 60 characters, so search results show it whole.
+    default: `${appName}: Good First Issue Alerts for GitHub`,
     template: `%s | ${appName}`,
   },
   description: siteDescription,

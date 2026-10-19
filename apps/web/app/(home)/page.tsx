@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { AccountLink } from "@/components/auth/AccountLink";
 import { JsonLd } from "@/components/JsonLd";
 import { LogoMark } from "@/components/Logo";
 import { buttonClasses } from "@/components/ui/Button";
 import { ROUTES } from "@/lib/constants";
 import { pageMetadata } from "@/lib/seo";
 import { appName, githubRepoUrl, siteDescription, siteUrl, tagline } from "@/lib/shared";
+import { FaqSection } from "./_components/FaqSection";
+import { Footer } from "./_components/Footer";
 import { HeroActions } from "./_components/HeroActions";
 import { RepoTeaser } from "./_components/RepoTeaser";
 import { ResourcesSection } from "./_components/ResourcesSection";
@@ -158,7 +159,7 @@ export default function HomePage() {
             key in your settings and manage subscriptions from scripts, bots or your own app.
           </p>
           <Link
-            href={ROUTES.docs}
+            href={`${ROUTES.docs}/api`}
             className={buttonClasses({ variant: "secondary", className: "w-fit" })}
           >
             API documentation
@@ -179,6 +180,8 @@ export default function HomePage() {
       </section>
 
       <ResourcesSection />
+
+      <FaqSection />
 
       {comingSoon.length > 0 && (
         <section className="border-t border-border bg-surface">
@@ -202,27 +205,7 @@ export default function HomePage() {
         </section>
       )}
 
-      <footer className="border-t border-border">
-        <div className="mx-auto flex w-full max-w-6xl flex-col gap-4 px-4 py-8 text-sm text-muted sm:flex-row sm:items-center sm:justify-between sm:px-6">
-          <p>
-            {appName} is open source.{" "}
-            <a
-              href={githubRepoUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="font-semibold text-primary hover:text-accent"
-            >
-              View it on GitHub
-            </a>
-          </p>
-          <nav aria-label="Footer" className="flex gap-6">
-            <Link href={ROUTES.docs} className="hover:text-foreground">
-              Docs
-            </Link>
-            <AccountLink variant="link" />
-          </nav>
-        </div>
-      </footer>
+      <Footer />
     </main>
   );
 }
