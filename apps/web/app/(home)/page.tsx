@@ -10,6 +10,7 @@ import { appName, githubRepoUrl, siteDescription, siteUrl, tagline } from "@/lib
 import { HeroActions } from "./_components/HeroActions";
 import { RepoTeaser } from "./_components/RepoTeaser";
 import { ResourcesSection } from "./_components/ResourcesSection";
+import { ShareLinks } from "./_components/ShareLinks";
 
 export const metadata: Metadata = pageMetadata({
   title: `${appName}: ${tagline}`,
@@ -203,7 +204,7 @@ export default function HomePage() {
       )}
 
       <footer className="border-t border-border">
-        <div className="mx-auto flex w-full max-w-6xl flex-col gap-4 px-4 py-8 text-sm text-muted sm:flex-row sm:items-center sm:justify-between sm:px-6">
+        <div className="mx-auto flex w-full max-w-6xl flex-col gap-4 px-4 py-8 text-sm text-muted md:flex-row md:items-center md:justify-between sm:px-6">
           <p>
             {appName} is open source.{" "}
             <a
@@ -215,6 +216,7 @@ export default function HomePage() {
               View it on GitHub
             </a>
           </p>
+          <ShareLinks />
           <nav aria-label="Footer" className="flex gap-6">
             <Link href={ROUTES.docs} className="hover:text-foreground">
               Docs
