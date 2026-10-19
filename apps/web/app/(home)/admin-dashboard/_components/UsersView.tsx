@@ -78,7 +78,7 @@ export function UsersView() {
                     // biome-ignore lint/performance/noImgElement: small external avatar
                     <img
                       src={user.image}
-                      alt=""
+                      alt="Profile"
                       width={32}
                       height={32}
                       className="size-8 rounded-full"

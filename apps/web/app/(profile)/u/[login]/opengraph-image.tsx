@@ -22,7 +22,7 @@ export default async function Image({ params }: { params: Promise<{ login: strin
           // biome-ignore lint/performance/noImgElement: rendered to an image by next/og
           <img
             src={profile.avatarUrl}
-            alt=""
+            alt="Profile"
             width={128}
             height={128}
             style={{ borderRadius: 64, border: `4px solid ${VIOLET_BRIGHT}` }}

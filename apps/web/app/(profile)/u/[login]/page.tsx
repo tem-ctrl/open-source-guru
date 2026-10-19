@@ -80,7 +80,7 @@ async function Profile({ params, searchParams }: Props) {
           // biome-ignore lint/performance/noImgElement: avatar from GitHub's CDN
           <img
             src={profile.avatarUrl}
-            alt=""
+            alt="Profile"
             width={88}
             height={88}
             className="size-22 rounded-full border-2 border-border"

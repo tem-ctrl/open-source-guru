@@ -9,10 +9,17 @@ import markLight from "@/public/brand/osg-mark-light.png";
 export function LogoMark({ size = 28 }: { size?: number }) {
   return (
     <>
-      <Image src={markLight} alt="" width={size} height={size} className="dark:hidden" priority />
+      <Image
+        src={markLight}
+        alt="Logo light"
+        width={size}
+        height={size}
+        className="dark:hidden"
+        priority
+      />
       <Image
         src={markDark}
-        alt=""
+        alt="Logo dark"
         width={size}
         height={size}
         className="hidden dark:block"
