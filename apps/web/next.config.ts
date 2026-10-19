@@ -31,6 +31,9 @@ const nextConfig: NextConfig = {
         source: "/u/:login/badge.svg",
         destination: `${apiInternalUrl}/v1/public/profiles/:login/badge.svg`,
       },
+      // Docs pages as Markdown for LLMs (see app/llms.mdx).
+      { source: "/docs.mdx", destination: "/llms.mdx/docs" },
+      { source: "/docs/:path*.mdx", destination: "/llms.mdx/docs/:path*" },
       { source: "/api/auth/:path*", destination: `${apiInternalUrl}/api/auth/:path*` },
       { source: "/api/:path*", destination: `${apiInternalUrl}/:path*` },
     ];
