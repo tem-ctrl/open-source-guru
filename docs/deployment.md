@@ -17,30 +17,27 @@ and migrate differ only by command) and `web`. Their Dockerfiles are in [`docker
 
 ## How a release works
 
-1. A push to `main` runs the **Docker Build Push** workflow, which pushes both images to GitHub Container
+Merging a PR to `main` (any push to `main`) runs the **Release** workflow
+(`.github/workflows/release.yml`). Each step runs only if the previous one succeeded:
+
+1. **CI** (`ci.yml`): lint, typecheck, tests and build.
+2. **Docker Build Push** (`docker-build-push.yml`): pushes both images to GitHub Container
    Registry, tagged with the commit SHA and `latest`.
-2. Deploy by hand on the VPS, from the deploy directory. Copy `docker-compose.prod.yml` there
-   first if it changed. To roll back, use an older commit SHA.
+3. **Deploy** (`deploy.yml`): connects to the VPS over SSH, copies `docker-compose.prod.yml` to the
+   deploy directory, then runs
+   `docker compose -f docker-compose.prod.yml up -d --pull always --remove-orphans --wait`.
+   `--wait` fails the step if a container doesn't become healthy.
+4. **IndexNow** (`indexnow.yml`): asks Bing and other IndexNow search engines to recrawl the
+   sitemap. It runs last because it checks that the live site serves the IndexNow key. If it
+   fails, the deploy is not undone.
 
-   ```bash
-   # Private images: log in with a GitHub token that has `read:packages`.
-   docker login ghcr.io -u <github-user>
-   sed -i "s/^IMAGE_TAG=.*/IMAGE_TAG=<commit-sha>/" .env
-   docker compose -f docker-compose.prod.yml pull
-   docker compose -f docker-compose.prod.yml up -d --remove-orphans --wait --wait-timeout 180
-   docker image prune -f
-   ```
+A newer push waits for the running release to finish. Each step can also be run by hand from the
+Actions tab: run **Deploy** to redeploy, or **IndexNow** with a list of paths to submit only those
+pages (locally: `pnpm --filter @osg/web indexnow`).
 
-   `--wait` fails if a container doesn't become healthy.
-
-   The **Deploy** workflow (`.github/workflows/deploy.yml`) automates the same steps over SSH. It's
-   turned off for now (`if: false` on its job); remove that line and set up the `production`
-   environment's secrets to use it.
-
-3. If public pages changed (docs, home page), run the **IndexNow** workflow from the Actions tab
-   so Bing and other IndexNow search engines recrawl them. Leave its input empty to submit the
-   whole sitemap, or list the changed paths. Locally: `pnpm --filter @osg/web indexnow`. The Deploy
-   workflow does this on its own.
+To roll back, on the VPS from the deploy directory, point the images at an older commit SHA
+(`sed -i 's/:latest/:<commit-sha>/' docker-compose.prod.yml`) and run
+`docker compose -f docker-compose.prod.yml up -d --wait`. The next release overwrites the file.
 
 ## Shared nginx
 
@@ -75,11 +72,14 @@ firewall that only allows 22, 80 and 443. Docker-published ports bypass
    ```text
    /opt/open-source-guru/
    ├─ .env                       from .env.production.example, filled in (chmod 600)
-   └─ secrets/github-app.pem     production GitHub App private key
+   └─ secrets/github-app.pem     written by the Deploy workflow from PRIVATE_KEY_GITHUB_APP
    ```
 
-   The containers run as the `node` user (uid 1000) and read the key as a Docker secret, so
-   give that uid read access: `sudo chown 1000 secrets/github-app.pem && chmod 400 secrets/github-app.pem`.
+   The containers run as the `node` user (uid 1000) and read the key as a Docker secret, so the
+   workflow makes the file owned by uid 1000 with mode 400. If the deploy user's uid (`id -u`)
+   isn't 1000, it runs `sudo -n chown 1000`, so allow that one command without a password, e.g.
+   in `/etc/sudoers.d/osg-deploy`:
+   `deploy ALL=(root) NOPASSWD: /usr/bin/chown 1000 /opt/open-source-guru/secrets/github-app.pem.new`.
 
 4. **GitHub App**: use the production app from [github-app.md](github-app.md), with the callback
    URL `https://open-source-guru.dev/api/auth/callback/github`.
@@ -92,9 +92,15 @@ firewall that only allows 22, 80 and 443. Docker-published ports bypass
    | Secret | `VPS_USER` | Deploy user |
    | Secret | `VPS_SSH_KEY` | Contents of `osg-deploy` (the private key) |
    | Secret | `VPS_KNOWN_HOSTS` | Output of `ssh-keyscan <host>`, checked against the server's real host keys |
+   | Secret | `PRIVATE_KEY_GITHUB_APP` | Contents of the production GitHub App's `.pem` |
+   | Variable | `VPS_PORT` | Only if SSH doesn't listen on 22 |
    | Variable | `DEPLOY_PATH` | Only if not `/opt/open-source-guru` |
 
-   Add required reviewers to the environment if deployments should be approved.
+   Under **Deployment branches and tags**, allow `main` only, so workflows from other branches
+   can't read these secrets. Add required reviewers if deployments should be approved.
+
+   To rotate the GitHub App key, update `PRIVATE_KEY_GITHUB_APP` and run **Deploy**: when the key
+   changed, it recreates api and worker so they load it.
 
 The repository is public, so its images are public too and the server could pull them without
 logging in. The workflow logs in anyway with the job's `GITHUB_TOKEN`, which expires when the job

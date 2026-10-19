@@ -1,8 +1,15 @@
 name: IndexNow
 
-# Asks Bing, Yandex and other IndexNow search engines to recrawl the site. Run it after a
-# deploy (apps/web/scripts/indexnow.ts). No dependencies: the script only uses fetch.
+# Asks Bing, Yandex and other IndexNow search engines to recrawl the site
+# (apps/web/scripts/indexnow.ts). release.yml runs it after each deploy; it can also be run by
+# hand. No dependencies: the script only uses fetch.
 on:
+  workflow_call:
+    inputs:
+      paths:
+        description: Space-separated paths to submit. Empty = every URL in the sitemap.
+        type: string
+        required: false
   workflow_dispatch:
     inputs:
       paths:

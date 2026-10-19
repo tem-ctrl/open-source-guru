@@ -1,15 +1,16 @@
 name: Docker Build Push
 
 # Builds the production images and pushes them to GitHub Container Registry,
-# tagged with the commit SHA (what deploy.yml runs) and `latest`.
+# tagged with the commit SHA (for rollbacks) and `latest` (what deploy.yml runs). Called by
+# release.yml after CI passes on main.
 on:
-  push:
-    branches: [main]
+  workflow_call:
   workflow_dispatch:
 
+# Never cancelled: a cancelled build would stop the release that called it.
 concurrency:
   group: docker-build-push-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 permissions:
   contents: read
