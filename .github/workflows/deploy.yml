@@ -38,6 +38,10 @@ jobs:
           VPS_USER: ${{ secrets.VPS_USER }}
           VPS_PORT: ${{ vars.VPS_PORT || '22' }}
         run: |
+          [ -n "$VPS_HOST" ] || { echo "Required production environment secret VPS_HOST is empty" >&2; exit 1; }
+          [ -n "$VPS_USER" ] || { echo "Required production environment secret VPS_USER is empty" >&2; exit 1; }
+          [ -n "$SSH_KEY" ] || { echo "Required production environment secret VPS_SSH_KEY is empty" >&2; exit 1; }
+          [ -n "$KNOWN_HOSTS" ] || { echo "Required production environment secret VPS_KNOWN_HOSTS is empty" >&2; exit 1; }
           install -m 700 -d ~/.ssh
           printf '%s\n' "$SSH_KEY" > ~/.ssh/id_deploy
           chmod 600 ~/.ssh/id_deploy
