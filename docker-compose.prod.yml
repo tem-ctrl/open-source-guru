@@ -55,7 +55,7 @@ services:
 
   api:
     <<: *backend
-    constainer_name: osg-api
+    container_name: osg-api
     command: ["node", "apps/api/src/server.ts"]
     depends_on:
       migrate:
