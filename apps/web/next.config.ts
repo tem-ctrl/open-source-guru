@@ -8,6 +8,8 @@ const apiInternalUrl = process.env.API_INTERNAL_URL ?? "http://localhost:4000";
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  // No `x-powered-by: Next.js` header.
+  poweredByHeader: false,
   cacheComponents: true,
   partialPrefetching: true,
   // Self-hosted with Docker; trace files from the monorepo root.
