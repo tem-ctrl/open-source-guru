@@ -96,6 +96,9 @@ firewall that only allows 22, 80 and 443. Docker-published ports bypass
    | Variable | `VPS_PORT` | Only if SSH doesn't listen on 22 |
    | Variable | `DEPLOY_PATH` | Only if not `/opt/open-source-guru` |
 
+   The release workflow forwards secrets to the reusable Deploy workflow with `secrets: inherit`.
+   Keep that forwarding in place if changing how the release workflow invokes Deploy.
+
    Under **Deployment branches and tags**, allow `main` only, so workflows from other branches
    can't read these secrets. Add required reviewers if deployments should be approved.
 

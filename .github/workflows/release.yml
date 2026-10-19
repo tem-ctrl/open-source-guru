@@ -29,6 +29,7 @@ jobs:
   deploy:
     needs: docker
     uses: ./.github/workflows/deploy.yml
+    secrets: inherit
     permissions:
       contents: read
       packages: read
