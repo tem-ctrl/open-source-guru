@@ -8,6 +8,17 @@ name: Deploy
 #   variables: VPS_PORT (optional, default 22), DEPLOY_PATH (optional, default /opt/open-source-guru)
 on:
   workflow_call:
+    secrets:
+      VPS_HOST:
+        required: true
+      VPS_USER:
+        required: true
+      VPS_SSH_KEY:
+        required: true
+      VPS_KNOWN_HOSTS:
+        required: true
+      PRIVATE_KEY_GITHUB_APP:
+        required: true
   workflow_dispatch:
 
 concurrency:
