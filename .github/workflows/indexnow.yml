@@ -28,6 +28,9 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: 24
+          # setup-node would otherwise cache for package.json's packageManager (pnpm), which this
+          # job doesn't install.
+          package-manager-cache: false
       - name: Submit to IndexNow
         env:
           PATHS: ${{ inputs.paths }}
