@@ -6,6 +6,9 @@ name: Deploy
 #   secrets: VPS_HOST, VPS_USER, VPS_SSH_KEY (private key), VPS_KNOWN_HOSTS (`ssh-keyscan <host>` output),
 #            PRIVATE_KEY_GITHUB_APP (production GitHub App .pem; secret names can't start with GITHUB_)
 #   variables: VPS_PORT (optional, default 22), DEPLOY_PATH (optional, default /opt/open-source-guru)
+# Fixed SSH connection settings: no password, no agent, no tty, no interactive prompts, strict host key checking, 15s timeout.
+# The GitHub App private key is uploaded to the server only if it has changed, and the API and worker containers are recreated
+# in that case. The compose file is always uploaded, and all containers are restarted with the latest images.
 on:
   workflow_call:
     secrets:
