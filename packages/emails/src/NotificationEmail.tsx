@@ -17,6 +17,8 @@ export interface NotificationIssue {
   url: string;
   labels: string[];
   assignees: string[];
+  /** Known to have no open PR when it was checked. */
+  hasNoOpenPr: boolean;
   /** e.g. "New issue", "Labeled help wanted". */
   reasons: string[];
 }
@@ -124,6 +126,7 @@ export function NotificationEmail({
                 ) : (
                   <Chip tone="coral">Not assigned yet</Chip>
                 )}
+                {issue.hasNoOpenPr && <Chip tone="coral">has no open pr</Chip>}
                 {issue.labels.map((label) => (
                   <Chip key={label}>{label}</Chip>
                 ))}

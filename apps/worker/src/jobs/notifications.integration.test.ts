@@ -83,6 +83,10 @@ describe("fanout and instant emails", () => {
       // #8 doesn't have the label, so GitHub isn't asked about it.
       expect(context.github.state.openPrLookups).toEqual([[7]]);
       expect(await database().db.select().from(deliveries)).toHaveLength(1);
+
+      context.advance(INSTANT_BATCH_WINDOW_MS);
+      await sendDueNotifications(context.ctx, "instant");
+      expect(context.mailer.sent[0]?.html).toContain("has no open pr");
     });
 
     it("skips issues with an open PR", async () => {
@@ -122,6 +126,12 @@ describe("fanout and instant emails", () => {
       await produceMatchingEvent(context);
 
       expect(context.github.state.openPrLookups).toEqual([]);
+
+      // Nothing was checked, so the email can't claim anything about open PRs.
+      context.advance(INSTANT_BATCH_WINDOW_MS);
+      await sendDueNotifications(context.ctx, "instant");
+      expect(context.mailer.sent).toHaveLength(1);
+      expect(context.mailer.sent[0]?.html).not.toContain("has no open pr");
     });
   });
 

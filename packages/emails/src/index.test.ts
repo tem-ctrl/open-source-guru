@@ -18,6 +18,7 @@ const section = (fullName: string, numbers: number[]): NotificationSection => ({
     url: `https://github.com/${fullName}/issues/${number}`,
     labels: ["help wanted"],
     assignees: [],
+    hasNoOpenPr: false,
     reasons: ["Labeled help wanted"],
   })),
 });
@@ -69,6 +70,21 @@ describe("renderNotificationEmail", () => {
     expect(email.html).toContain(common.unsubscribeAllUrl);
     expect(email.html).toContain("token=acme/repo");
     expect(email.text).toContain("#42 Fix bug 42");
+    expect(email.html).not.toContain("has no open pr");
+  });
+
+  it("tags issues known to have no open PR", async () => {
+    const base = section("acme/repo", [42]);
+    const email = await renderNotificationEmail({
+      kind: "instant",
+      sections: [
+        { ...base, issues: base.issues.map((issue) => ({ ...issue, hasNoOpenPr: true })) },
+      ],
+      ...common,
+    });
+
+    expect(email.html).toContain("has no open pr");
+    expect(email.text).toContain("has no open pr");
   });
 });
 

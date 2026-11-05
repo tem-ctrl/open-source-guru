@@ -26,7 +26,7 @@ export interface MatchableEvent {
 
 const normalize = (label: string) => label.trim().toLowerCase();
 
-const requiresNoOpenPr = (labels: string[]) =>
+export const requiresNoOpenPr = (labels: string[]) =>
   labels.some((label) => normalize(label) === HAS_NO_OPEN_PR);
 
 /**

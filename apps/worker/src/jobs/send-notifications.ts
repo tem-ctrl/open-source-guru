@@ -12,6 +12,7 @@ import {
 } from "@osg/core/db/schema";
 import { PermanentEmailError } from "@osg/core/mail";
 import { groupDeliveriesByRepo } from "@osg/core/notifications/compose";
+import { requiresNoOpenPr } from "@osg/core/notifications/match";
 import { isDailyDigestDue } from "@osg/core/notifications/schedule";
 import { renderNotificationEmail } from "@osg/emails";
 import type { WorkerContext } from "../context.ts";
@@ -99,6 +100,7 @@ async function sendChannelEmail(
       attempts: deliveries.attempts,
       subscriptionId: deliveries.subscriptionId,
       subscriptionStatus: subscriptions.status,
+      subscriptionLabels: subscriptions.labels,
       owner: repositories.owner,
       name: repositories.name,
       type: events.type,
@@ -145,6 +147,7 @@ async function sendChannelEmail(
       deliveryId: row.deliveryId,
       subscriptionId: row.subscriptionId,
       repo: { owner: row.owner, name: row.name },
+      checkedNoOpenPr: requiresNoOpenPr(row.subscriptionLabels),
       event: { type: row.type, label: row.label, occurredAt: row.occurredAt, issue: row.issue },
     })),
   ).map((section) => ({

@@ -2,9 +2,13 @@ import { describe, expect, it } from "vitest";
 import { type DeliveryItem, groupDeliveriesByRepo } from "./compose.ts";
 
 const item = (
-  overrides: { repo?: string; number?: number; subscriptionId?: string; at?: string } & Partial<
-    Pick<DeliveryItem["event"], "type" | "label">
-  > = {},
+  overrides: {
+    repo?: string;
+    number?: number;
+    subscriptionId?: string;
+    at?: string;
+    checkedNoOpenPr?: boolean;
+  } & Partial<Pick<DeliveryItem["event"], "type" | "label">> = {},
 ): DeliveryItem => {
   const [owner = "acme", name = "repo"] = (overrides.repo ?? "acme/repo").split("/");
   const number = overrides.number ?? 1;
@@ -12,6 +16,7 @@ const item = (
     deliveryId: `d-${Math.random()}`,
     subscriptionId: overrides.subscriptionId ?? "s1",
     repo: { owner, name },
+    checkedNoOpenPr: overrides.checkedNoOpenPr ?? false,
     event: {
       type: overrides.type ?? "issue.opened",
       label: overrides.label ?? null,
@@ -52,9 +57,22 @@ describe("groupDeliveriesByRepo", () => {
         url: "https://github.com/acme/repo/issues/1",
         labels: ["help wanted"],
         assignees: [],
+        hasNoOpenPr: false,
         reasons: ["New issue", "Labeled good first issue"],
       },
     ]);
+  });
+
+  it("marks an issue as having no open PR if any of its subscriptions checked", () => {
+    const sections = groupDeliveriesByRepo([
+      item({ number: 1 }),
+      item({ number: 2, subscriptionId: "s1" }),
+      item({ number: 2, subscriptionId: "s2", checkedNoOpenPr: true }),
+    ]);
+
+    const byNumber = new Map(sections[0]?.issues.map((issue) => [issue.number, issue]));
+    expect(byNumber.get(1)?.hasNoOpenPr).toBe(false);
+    expect(byNumber.get(2)?.hasNoOpenPr).toBe(true);
   });
 
   it("puts the most recent issues first", () => {
