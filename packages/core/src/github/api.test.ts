@@ -163,3 +163,82 @@ describe("listRepoLabels", () => {
     ]);
   });
 });
+
+describe("listIssuesWithOpenPrs", () => {
+  const issueWith = (...states: string[]) => ({
+    closedByPullRequestsReferences: { nodes: states.map((state) => ({ state })) },
+  });
+
+  it("returns the issues with an open PR, ignoring the other states", async () => {
+    server.use(
+      http.post(`${BASE}/graphql`, () =>
+        HttpResponse.json({
+          data: {
+            repository: {
+              i1: issueWith("OPEN", "CLOSED"),
+              i2: issueWith("CLOSED", "MERGED"),
+              i3: issueWith(),
+            },
+          },
+        }),
+      ),
+    );
+    expect(await api.listIssuesWithOpenPrs("acme", "repo", [1, 2, 3])).toEqual(new Set([1]));
+  });
+
+  it("splits many issues over several requests", async () => {
+    const batches: number[] = [];
+    server.use(
+      http.post(`${BASE}/graphql`, async ({ request }) => {
+        const { query } = (await request.json()) as { query: string };
+        const aliases = [...query.matchAll(/i(\d+): issue\(/g)].map((match) => match[1]);
+        batches.push(aliases.length);
+        return HttpResponse.json({
+          data: {
+            repository: Object.fromEntries(aliases.map((n) => [`i${n}`, issueWith("OPEN")])),
+          },
+        });
+      }),
+    );
+    const numbers = Array.from({ length: 120 }, (_, index) => index + 1);
+    const result = await api.listIssuesWithOpenPrs("acme", "repo", numbers);
+    expect(batches).toEqual([50, 50, 20]);
+    expect(result.size).toBe(120);
+  });
+
+  it("keeps the other issues when one no longer exists", async () => {
+    server.use(
+      http.post(`${BASE}/graphql`, () =>
+        HttpResponse.json({
+          data: { repository: { i1: issueWith("OPEN"), i2: null } },
+          errors: [{ type: "NOT_FOUND", path: ["repository", "i2"], message: "Not found" }],
+        }),
+      ),
+    );
+    expect(await api.listIssuesWithOpenPrs("acme", "repo", [1, 2])).toEqual(new Set([1]));
+  });
+
+  it("finds nothing in a repository that no longer exists", async () => {
+    server.use(
+      http.post(`${BASE}/graphql`, () =>
+        HttpResponse.json({
+          data: { repository: null },
+          errors: [{ type: "NOT_FOUND", path: ["repository"], message: "Not found" }],
+        }),
+      ),
+    );
+    expect(await api.listIssuesWithOpenPrs("acme", "gone", [1])).toEqual(new Set());
+  });
+
+  it("throws on any other error, so that the check is retried", async () => {
+    server.use(
+      http.post(`${BASE}/graphql`, () =>
+        HttpResponse.json({
+          data: { repository: null },
+          errors: [{ type: "RATE_LIMITED", message: "Slow down" }],
+        }),
+      ),
+    );
+    await expect(api.listIssuesWithOpenPrs("acme", "repo", [1])).rejects.toThrow("Slow down");
+  });
+});

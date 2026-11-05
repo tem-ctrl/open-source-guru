@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { LogoMark } from "@/components/Logo";
 import { ROUTES } from "@/lib/constants";
+import { labelDisplayName } from "@/lib/label-filters";
 import { readPendingSubscription, withPendingSubscription } from "@/lib/pending-subscription";
 import { pageMetadata } from "@/lib/seo";
 import { getCurrentUser } from "@/lib/session";
@@ -91,7 +92,7 @@ async function SignInPanel({
           <p className="text-muted">After signing in, you'll follow</p>
           <p className="font-mono font-semibold text-accent">{pending.repo}</p>
           {pending.labels.length > 0 && (
-            <p className="text-subtle">Labels: {pending.labels.join(", ")}</p>
+            <p className="text-subtle">Labels: {pending.labels.map(labelDisplayName).join(", ")}</p>
           )}
         </div>
       )}

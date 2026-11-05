@@ -2,6 +2,7 @@
 
 import { useCallback, useState } from "react";
 import { ApiRequestError, apiFetch } from "@/lib/api-client";
+import { HAS_NO_OPEN_PR, isNoOpenPrFilter } from "@/lib/label-filters";
 import { parseRepo } from "@/lib/repo";
 
 export interface RepoLabel {
@@ -43,11 +44,13 @@ export function useRepoLabels() {
       const labels = await apiFetch<RepoLabel[]>(`/v1/public/repos/${repo}/labels`);
       const wanted = (preselect ?? SUGGESTED_LABELS).map((name) => name.toLowerCase());
       setSelected(
-        new Set(
-          labels
+        new Set([
+          ...labels
             .filter((label) => wanted.includes(label.name.toLowerCase()))
             .map((label) => label.name),
-        ),
+          // Not a label of the repository, so it has to be carried over.
+          ...(wanted.some(isNoOpenPrFilter) ? [HAS_NO_OPEN_PR] : []),
+        ]),
       );
       setStatus({ kind: "ready", repo, labels });
     } catch (error) {

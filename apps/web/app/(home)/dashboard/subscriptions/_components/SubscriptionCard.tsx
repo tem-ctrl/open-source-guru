@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { buttonClasses } from "@/components/ui/Button";
 import { apiFetch } from "@/lib/api-client";
+import { labelDisplayName, realLabels } from "@/lib/label-filters";
 import { SubscriptionForm } from "./SubscriptionForm";
 import { type Channel, EVENT_LABELS, FREQUENCY_LABELS, type Subscription } from "./types";
 
@@ -91,11 +92,11 @@ export function SubscriptionCard({
                     key={label}
                     className="rounded-full border border-border bg-chip px-2.5 py-0.5 text-chip-foreground"
                   >
-                    {label}
+                    {labelDisplayName(label)}
                   </span>
                 ))
               )}
-              {subscription.labels.length > 1 && (
+              {realLabels(subscription.labels).length > 1 && (
                 <span className="text-muted">
                   ({subscription.labelMatch === "all" ? "all of them" : "any of them"})
                 </span>

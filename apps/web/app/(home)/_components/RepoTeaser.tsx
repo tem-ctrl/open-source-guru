@@ -6,6 +6,7 @@ import { RepoLabelPicker } from "@/components/subscriptions/RepoLabelPicker";
 import { useRepoLabels } from "@/components/subscriptions/use-repo-labels";
 import { buttonClasses } from "@/components/ui/Button";
 import { ROUTES } from "@/lib/constants";
+import { describeIssues } from "@/lib/label-filters";
 import { withPendingSubscription } from "@/lib/pending-subscription";
 
 /**
@@ -28,12 +29,12 @@ export function RepoTeaser() {
   return (
     <div className="flex flex-col gap-5 rounded-xl border border-border bg-surface p-6 shadow-sm sm:p-8">
       <RepoLabelPicker picker={picker} />
-      {status.kind === "ready" && status.labels.length > 0 && (
+      {status.kind === "ready" && (
         <div className="flex flex-col gap-3 border-t border-border pt-4 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm text-muted">
             {selected.size === 0
               ? "Pick at least one label."
-              : `We'll email you about new issues labeled ${[...selected].join(", ")}.`}
+              : `We'll email you about new issues ${describeIssues(selected)}.`}
           </p>
           <button
             type="button"
