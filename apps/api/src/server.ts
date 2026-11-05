@@ -7,6 +7,7 @@ import { buildApp } from "./app.ts";
 import { createAuth } from "./auth.ts";
 import type { ApiContext } from "./context.ts";
 import { loadApiEnv } from "./env.ts";
+import { serializeRequest } from "./logging.ts";
 import { promoteAdminLogins } from "./services/admin-roles.ts";
 import { onUserCreated } from "./services/channels.ts";
 
@@ -16,6 +17,7 @@ const mailer = createSmtpSender({ url: env.SMTP_URL, from: env.EMAIL_FROM });
 
 const logger = {
   level: env.LOG_LEVEL,
+  serializers: { req: serializeRequest },
   ...(env.NODE_ENV === "development" && { transport: { target: "pino-pretty" } }),
 };
 

@@ -10,6 +10,7 @@ behind the [nginx shared](#shared-nginx) with the other apps on that server.
 | worker | `open-source-guru-backend` | pg-boss jobs |
 | migrate | `open-source-guru-backend` | Applies migrations and exits; api and worker start after it succeeds |
 | postgres | `postgres` | Data and job queue, on an internal network with no route out |
+| log-shipper | `fluent/fluent-bit` | Forwards the logs of this stack's containers to [OpenObserve](#logs) |
 
 nginx serves `open-source-guru.dev` → web and `api.open-source-guru.dev` → api, and redirects
 `www.open-source-guru.dev` → `open-source-guru.dev`. Two images are built: `backend` (api, worker
@@ -129,6 +130,31 @@ a login from `ADMIN_LOGINS` doesn't remove the role: do it from the dashboard. O
 admin exists, you can empty `ADMIN_LOGINS` (a GitHub login can be renamed and taken by someone
 else).
 
-Logs are rotated by Docker (5 × 10 MB per container).
+### Logs
+
+Docker keeps each container's logs on the server (rotated, 5 × 10 MB). `log-shipper` forwards them
+to the OpenObserve running on the same server (see vps-nginx's README), in the
+`open_source_guru` stream of the `default` organization. It connects to `127.0.0.1:5080`, so
+credentials and logs don't cross the internet.
+
+To set it up, copy the user and passcode from OpenObserve's **Ingestion** page to
+`OPENOBSERVE_USER` and `OPENOBSERVE_PASSWORD` in `.env`, then run
+`docker compose -f docker-compose.prod.yml up -d log-shipper`.
+
+Records have a `container` field (`osg-api`, `osg-worker`, ...) and a `stream` (`stdout` or
+`stderr`). API and worker lines are split into pino's fields: `level` is numeric (30 info, 40 warn,
+50 error) and field names are lowercased (`reqId` becomes `reqid`). Other lines, such as those from
+Postgres and the web app, stay as text in `log`. For example:
+
+```sql
+SELECT * FROM "open_source_guru" WHERE container = 'osg-worker' AND level >= 50
+```
+
+If OpenObserve is down or the credentials are wrong, the app isn't affected: log-shipper retries,
+then catches up from Docker's log files, so only lines already rotated away are lost. To
+investigate, run `docker logs osg-log-shipper`.
+
+The pipeline is defined in `configs` in `docker-compose.prod.yml`. After changing it, run
+`docker compose -f docker-compose.prod.yml up -d --force-recreate log-shipper`.
 
 Backups aren't set up yet: PLAN.md §14 calls for daily `pg_dump` to off-server object storage.

@@ -13,6 +13,8 @@ x-logging: &logging
   options:
     max-size: 10m
     max-file: "5"
+    # Stored on each log line as attrs.tag. log-shipper only forwards lines tagged osg-*.
+    tag: "{{.Name}}"
 
 x-backend: &backend
   image: ghcr.io/tem-ctrl/open-source-guru-backend:latest
@@ -120,12 +122,108 @@ services:
       - db
     logging: *logging
 
+  # Forwards this stack's container logs to the OpenObserve running on the same server
+  # If OpenObserve is down, it stops reading and catches up later, up to what
+  # Docker's rotation still holds. See docs/deployment.md.
+  log-shipper:
+    image: fluent/fluent-bit:5.1.5
+    container_name: osg-log-shipper
+    restart: unless-stopped
+    # OpenObserve's port is reached on the host's loopback, so credentials and logs stay on the
+    # server. Nothing listens here: Fluent Bit's HTTP server is off.
+    network_mode: host
+    command: ["/fluent-bit/bin/fluent-bit", "-c", "/fluent-bit/etc/osg.yaml"]
+    environment:
+      OPENOBSERVE_USER: ${OPENOBSERVE_USER:-}
+      OPENOBSERVE_PASSWORD: ${OPENOBSERVE_PASSWORD:-}
+    configs:
+      - source: log_shipper
+        target: /fluent-bit/etc/osg.yaml
+    volumes:
+      # Holds every container's logs on the server, not only this stack's. The grep filter below
+      # drops the others.
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - log-shipper-state:/var/lib/fluent-bit
+    cap_drop:
+      - ALL
+    mem_limit: 128m
+    # No tag: forwarding its own logs would feed every delivery error back into OpenObserve.
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+
+configs:
+  # Inline because the Deploy workflow only copies this file to the server.
+  log_shipper:
+    content: |
+      service:
+        flush: 5
+        log_level: warn
+
+      parsers:
+        - name: docker_json_file
+          format: json
+          time_key: time
+          time_format: "%Y-%m-%dT%H:%M:%S.%L%z"
+
+        - name: app_json
+          format: json
+
+      pipeline:
+        inputs:
+          - name: tail
+            path: /var/lib/docker/containers/*/*-json.log
+            parser: docker_json_file
+            db: /var/lib/fluent-bit/tail.db
+            # Pauses reading, instead of dropping, while OpenObserve can't keep up.
+            mem_buf_limit: 32MB
+            skip_long_lines: on
+
+        filters:
+          - name: grep
+            match: "*"
+            regex: "$$attrs['tag'] ^osg-"
+
+          - name: nest
+            match: "*"
+            operation: lift
+            nested_under: attrs
+
+          - name: modify
+            match: "*"
+            rename: tag container
+
+          # pino lines become fields (level, msg, ...). Others, such as Postgres, stay in `log`.
+          - name: parser
+            match: "*"
+            key_name: log
+            parser: app_json
+            reserve_data: on
+
+        outputs:
+          - name: http
+            match: "*"
+            host: 127.0.0.1
+            port: 5080
+            uri: /api/default/open_source_guru/_json
+            tls: off
+            format: json
+            json_date_key: _timestamp
+            json_date_format: iso8601
+            http_user: $${OPENOBSERVE_USER}
+            http_passwd: $${OPENOBSERVE_PASSWORD}
+            compress: gzip
+            retry_limit: no_limits
+
 secrets:
   github_app_key:
     file: ./secrets/github-app.pem
 
 volumes:
   postgres-data:
+  log-shipper-state:
 
 networks:
   # web → api, and outbound access (GitHub, SMTP) for the api.
