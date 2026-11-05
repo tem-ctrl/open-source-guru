@@ -5,6 +5,8 @@ export interface DeliveryItem {
   deliveryId: string;
   subscriptionId: string;
   repo: { owner: string; name: string };
+  /** The subscription requires no open PR, so this delivery exists because the check passed. */
+  checkedNoOpenPr: boolean;
   event: { type: IssueEventType; label: string | null; occurredAt: Date; issue: EventIssue };
 }
 
@@ -14,6 +16,8 @@ export interface EmailIssue {
   url: string;
   labels: string[];
   assignees: string[];
+  /** Known to have no open PR when it was checked. False also means it wasn't checked. */
+  hasNoOpenPr: boolean;
   /** Why it's in the email, e.g. "New issue" or "Labeled help wanted". */
   reasons: string[];
 }
@@ -66,6 +70,7 @@ export function groupDeliveriesByRepo(items: DeliveryItem[]): EmailRepoSection[]
     if (existing) {
       if (!existing.reasons.includes(reason)) existing.reasons.push(reason);
       existing.latest = Math.max(existing.latest, occurredAt);
+      existing.hasNoOpenPr ||= item.checkedNoOpenPr;
     } else {
       entry.issues.set(issue.number, {
         number: issue.number,
@@ -73,6 +78,7 @@ export function groupDeliveriesByRepo(items: DeliveryItem[]): EmailRepoSection[]
         url: issue.htmlUrl,
         labels: issue.labels.map((label) => label.name),
         assignees: issue.assignees,
+        hasNoOpenPr: item.checkedNoOpenPr,
         reasons: [reason],
         latest: occurredAt,
       });
