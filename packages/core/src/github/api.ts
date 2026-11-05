@@ -36,6 +36,11 @@ export interface GitHubApi {
   listRepoLabels(owner: string, name: string): Promise<RepoLabel[]>;
   /** One page (100 items) of issues, most recently updated first. Pull requests are left out. */
   listIssuesPage(params: ListIssuesParams): Promise<IssuesPage>;
+  /**
+   * Which of these issues have an open pull request linked to them (a closing keyword or the
+   * Development sidebar). Issues or repositories that no longer exist count as having none.
+   */
+  listIssuesWithOpenPrs(owner: string, name: string, numbers: number[]): Promise<Set<number>>;
 }
 
 export class RepositoryNotFoundError extends Error {
@@ -103,6 +108,42 @@ interface LabelsQueryResult {
       }[];
     };
   } | null;
+}
+
+/** Issues per query: the nodes stay few enough to cost about one point of the rate limit. */
+const OPEN_PR_BATCH_SIZE = 50;
+
+/** Open PRs sort first, so the small page can't miss one; each PR's `state` decides. */
+const openPrsQuery = (numbers: number[]) => /* GraphQL */ `
+  query IssuesOpenPrs($owner: String!, $name: String!) {
+    repository(owner: $owner, name: $name) {
+      ${numbers
+        .map(
+          (number) =>
+            `i${number}: issue(number: ${number}) {
+              closedByPullRequestsReferences(first: 5, orderByState: true) { nodes { state } }
+            }`,
+        )
+        .join("\n")}
+    }
+  }
+`;
+
+interface OpenPrsQueryResult {
+  repository: Record<
+    string,
+    { closedByPullRequestsReferences: { nodes: { state: string }[] } } | null
+  > | null;
+}
+
+/**
+ * GitHub reports a missing issue as an error beside the rest of the data, and Octokit throws on
+ * it. Returns that data when not finding something is all that went wrong, otherwise null.
+ */
+function dataDespiteNotFound<T>(error: unknown): T | null {
+  if (!(error instanceof Error) || error.name !== "GraphqlResponseError") return null;
+  const { errors, data } = error as Error & { errors?: { type?: string }[]; data?: T };
+  return data && errors?.every((item) => item.type === "NOT_FOUND") ? data : null;
 }
 
 export function createGitHubApi(octokit: Octokit): GitHubApi {
@@ -174,6 +215,25 @@ export function createGitHubApi(octokit: Octokit): GitHubApi {
         }
         throw error;
       }
+    },
+
+    async listIssuesWithOpenPrs(owner, name, numbers) {
+      const withOpenPr = new Set<number>();
+      for (let start = 0; start < numbers.length; start += OPEN_PR_BATCH_SIZE) {
+        const batch = numbers.slice(start, start + OPEN_PR_BATCH_SIZE);
+        const result = await octokit
+          .graphql<OpenPrsQueryResult>(openPrsQuery(batch), { owner, name })
+          .catch((error: unknown) => {
+            const data = dataDespiteNotFound<OpenPrsQueryResult>(error);
+            if (!data) throw error;
+            return data;
+          });
+        for (const number of batch) {
+          const prs = result.repository?.[`i${number}`]?.closedByPullRequestsReferences.nodes ?? [];
+          if (prs.some((pr) => pr.state === "OPEN")) withOpenPr.add(number);
+        }
+      }
+      return withOpenPr;
     },
   };
 }

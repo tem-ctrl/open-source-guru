@@ -116,7 +116,7 @@ export const subscriptionRoutes =
           tags,
           summary: "Follow labels on a repository",
           description:
-            "Emails you when an issue is opened with one of the labels, or when one of the labels is added to an issue. With no labels, every new issue matches.",
+            "Emails you when an issue is opened with one of the labels, or when one of the labels is added to an issue. With no labels, every new issue matches. Add `has_no_open_pr` to `labels` to also require that the issue has no open linked pull request.",
           body: z.object({
             repo: z.string().describe("`owner/name` or a GitHub URL"),
             labels: labelsSchema.default([]),

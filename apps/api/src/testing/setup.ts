@@ -39,6 +39,7 @@ export function fakeGitHub() {
       ];
     },
     listIssuesPage: async () => ({ notModified: true }),
+    listIssuesWithOpenPrs: async () => new Set(),
   };
   return { api, calls };
 }

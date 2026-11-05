@@ -90,6 +90,7 @@ async function setup() {
       getRepository: async () => null,
       listRepoLabels: async () => [],
       listIssuesPage: async () => ({ notModified: true }),
+      listIssuesWithOpenPrs: async () => new Set(),
     },
     mailer,
     links: createEmailLinks({

@@ -30,6 +30,10 @@ function fakeGitHub() {
     issues: [] as GitHubIssue[],
     etag: 'W/"1"',
     notFound: false,
+    /** Issues with an open PR, the lookups made, and whether they fail. */
+    issuesWithOpenPr: new Set<number>(),
+    openPrLookups: [] as number[][],
+    openPrLookupFails: false,
     requests: [] as {
       state: string;
       since: Date | null | undefined;
@@ -49,6 +53,11 @@ function fakeGitHub() {
           (!params.since || issue.updatedAt >= params.since),
       );
       return { notModified: false, etag: state.etag, issues: matching, hasNextPage: false };
+    },
+    async listIssuesWithOpenPrs(_owner, _name, numbers) {
+      state.openPrLookups.push(numbers);
+      if (state.openPrLookupFails) throw new Error("GitHub is down");
+      return new Set(numbers.filter((number) => state.issuesWithOpenPr.has(number)));
     },
   };
   return { api, state };

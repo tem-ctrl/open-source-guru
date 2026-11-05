@@ -1,6 +1,7 @@
-import { eq } from "@osg/core/db/query";
-import { deliveries, emailSuppressions, subscriptions } from "@osg/core/db/schema";
+import { eq, isNull } from "@osg/core/db/query";
+import { deliveries, emailSuppressions, events, subscriptions } from "@osg/core/db/schema";
 import { PermanentEmailError } from "@osg/core/mail";
+import { HAS_NO_OPEN_PR } from "@osg/core/notifications/match";
 import { verifyEmailToken } from "@osg/core/tokens";
 import { describe, expect, it } from "vitest";
 import {
@@ -9,6 +10,7 @@ import {
   SECRET,
   useTestDatabase,
 } from "../testing/setup.ts";
+import { fanOutEvents } from "./fanout.ts";
 import { INSTANT_BATCH_WINDOW_MS, sendDueNotifications } from "./send-notifications.ts";
 
 const database = useTestDatabase();
@@ -63,6 +65,64 @@ describe("fanout and instant emails", () => {
     await produceMatchingEvent(context);
 
     expect(await database().db.select().from(deliveries)).toEqual([]);
+  });
+
+  describe("has_no_open_pr", () => {
+    const followWithoutOpenPrs = (context: Awaited<ReturnType<typeof setup>>) =>
+      database()
+        .db.update(subscriptions)
+        .set({ labels: ["Help Wanted", HAS_NO_OPEN_PR] })
+        .where(eq(subscriptions.id, context.subscription.id));
+
+    it("delivers issues without an open PR, looking up only the matching ones", async () => {
+      const context = await setup();
+      await followWithoutOpenPrs(context);
+
+      await produceMatchingEvent(context);
+
+      // #8 doesn't have the label, so GitHub isn't asked about it.
+      expect(context.github.state.openPrLookups).toEqual([[7]]);
+      expect(await database().db.select().from(deliveries)).toHaveLength(1);
+    });
+
+    it("skips issues with an open PR", async () => {
+      const context = await setup();
+      await followWithoutOpenPrs(context);
+      context.github.state.issuesWithOpenPr.add(7);
+
+      await produceMatchingEvent(context);
+
+      expect(await database().db.select().from(deliveries)).toEqual([]);
+      expect(await database().db.select().from(events).where(isNull(events.fannedOutAt))).toEqual(
+        [],
+      );
+    });
+
+    it("keeps the event pending while the lookup fails, then delivers it", async () => {
+      const context = await setup();
+      await followWithoutOpenPrs(context);
+      context.github.state.openPrLookupFails = true;
+
+      await produceMatchingEvent(context);
+
+      expect(await database().db.select().from(deliveries)).toEqual([]);
+      // #8 needed no lookup, so only #7 waits.
+      const waiting = await database().db.select().from(events).where(isNull(events.fannedOutAt));
+      expect(waiting.map((event) => event.issueNumber)).toEqual([7]);
+
+      context.github.state.openPrLookupFails = false;
+      await fanOutEvents(context.ctx);
+
+      expect(await database().db.select().from(deliveries)).toHaveLength(1);
+    });
+
+    it("makes no lookup for subscriptions without the condition", async () => {
+      const context = await setup();
+
+      await produceMatchingEvent(context);
+
+      expect(context.github.state.openPrLookups).toEqual([]);
+    });
   });
 
   it("skips deliveries of paused subscriptions", async () => {

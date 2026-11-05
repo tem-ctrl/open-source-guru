@@ -6,6 +6,7 @@ import { RepoLabelPicker } from "@/components/subscriptions/RepoLabelPicker";
 import { useRepoLabels } from "@/components/subscriptions/use-repo-labels";
 import { buttonClasses } from "@/components/ui/Button";
 import { apiFetch } from "@/lib/api-client";
+import { labelDisplayName, realLabels } from "@/lib/label-filters";
 import { type Channel, EVENT_LABELS, type EventType, type Subscription } from "./types";
 
 const ALL_EVENTS: EventType[] = ["issue.opened", "issue.labeled"];
@@ -100,7 +101,7 @@ export function SubscriptionForm({
           <p className="text-sm text-muted">
             {selected.size === 0
               ? "No label selected: you'll hear about every new issue in this repository."
-              : `Selected: ${[...selected].join(", ")}.`}
+              : `Selected: ${[...selected].map(labelDisplayName).join(", ")}.`}
           </p>
 
           <fieldset className="flex flex-col gap-2">
@@ -118,7 +119,7 @@ export function SubscriptionForm({
             ))}
           </fieldset>
 
-          {selected.size > 1 && (
+          {realLabels(selected).length > 1 && (
             <fieldset className="flex flex-col gap-2">
               <legend className="mb-2 text-sm font-semibold">An issue matches when it has</legend>
               {(["any", "all"] as const).map((value) => (

@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { type MatchableEvent, matchesSubscription, type SubscriptionFilter } from "./match.ts";
+import {
+  HAS_NO_OPEN_PR,
+  type MatchableEvent,
+  matchesSubscription,
+  needsOpenPrCheck,
+  type SubscriptionFilter,
+} from "./match.ts";
 
 const label = (name: string) => ({ nodeId: `LA_${name}`, name, color: "ffffff" });
 
@@ -64,6 +70,62 @@ describe("matchesSubscription", () => {
       const filter = sub({ labels: ["help wanted", "good first issue"], labelMatch: "all" });
       expect(matchesSubscription(filter, labeled("help wanted", "good first issue"))).toBe(true);
       expect(matchesSubscription(filter, labeled("help wanted"))).toBe(false);
+    });
+  });
+
+  describe("has_no_open_pr", () => {
+    const withoutPr = (event: MatchableEvent) => ({ ...event, hasOpenPr: false });
+    const withPr = (event: MatchableEvent) => ({ ...event, hasOpenPr: true });
+
+    it("alone, matches any issue without an open PR", () => {
+      const filter = sub({ labels: [HAS_NO_OPEN_PR] });
+      expect(matchesSubscription(filter, withoutPr(opened("bug")))).toBe(true);
+      expect(matchesSubscription(filter, withPr(opened("bug")))).toBe(false);
+    });
+
+    it("never matches while the open PRs are unknown", () => {
+      expect(matchesSubscription(sub({ labels: [HAS_NO_OPEN_PR] }), opened())).toBe(false);
+    });
+
+    it("is required on top of the labels with 'any'", () => {
+      const filter = sub({ labels: ["help wanted", "bug", HAS_NO_OPEN_PR] });
+      expect(matchesSubscription(filter, withoutPr(opened("bug")))).toBe(true);
+      expect(matchesSubscription(filter, withPr(opened("bug")))).toBe(false);
+      expect(matchesSubscription(filter, withoutPr(opened("docs")))).toBe(false);
+    });
+
+    it("isn't counted as a label to have with 'all'", () => {
+      const filter = sub({ labels: ["help wanted", "bug", HAS_NO_OPEN_PR], labelMatch: "all" });
+      expect(matchesSubscription(filter, withoutPr(opened("help wanted", "bug")))).toBe(true);
+      expect(matchesSubscription(filter, withoutPr(opened("help wanted")))).toBe(false);
+    });
+
+    it("applies to labels added to existing issues", () => {
+      const filter = sub({ labels: ["help wanted", HAS_NO_OPEN_PR] });
+      expect(matchesSubscription(filter, withoutPr(labeled("help wanted")))).toBe(true);
+      expect(matchesSubscription(filter, withPr(labeled("help wanted")))).toBe(false);
+    });
+
+    it("is recognized regardless of case", () => {
+      const filter = sub({ labels: ["HAS_NO_OPEN_PR "] });
+      expect(matchesSubscription(filter, withPr(opened()))).toBe(false);
+    });
+  });
+
+  describe("needsOpenPrCheck", () => {
+    it("is true only when the labels already match", () => {
+      const filter = sub({ labels: ["help wanted", HAS_NO_OPEN_PR] });
+      expect(needsOpenPrCheck(filter, opened("help wanted"))).toBe(true);
+      expect(needsOpenPrCheck(filter, opened("bug"))).toBe(false);
+    });
+
+    it("is false for subscriptions without the condition", () => {
+      expect(needsOpenPrCheck(sub(), opened("help wanted"))).toBe(false);
+    });
+
+    it("is false for event types the subscription didn't ask for", () => {
+      const filter = sub({ labels: [HAS_NO_OPEN_PR], eventTypes: ["issue.labeled"] });
+      expect(needsOpenPrCheck(filter, opened())).toBe(false);
     });
   });
 });

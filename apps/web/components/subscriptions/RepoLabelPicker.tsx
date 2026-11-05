@@ -2,10 +2,18 @@
 
 import { type SubmitEvent, useId, useMemo, useState } from "react";
 import { buttonClasses } from "@/components/ui/Button";
+import { HAS_NO_OPEN_PR, HAS_NO_OPEN_PR_NAME } from "@/lib/label-filters";
 import type { RepoLabelsPicker } from "./use-repo-labels";
 
 const EXAMPLES = ["freeCodeCamp/freeCodeCamp", "mdn/content", "microsoft/vscode"];
 const MAX_VISIBLE_LABELS = 24;
+
+const chipClasses = (isSelected: boolean) =>
+  `inline-flex min-h-9 items-center gap-2 rounded-full border px-3 text-sm font-semibold transition-colors ${
+    isSelected
+      ? "border-highlight bg-highlight text-highlight-foreground"
+      : "border-border bg-chip text-chip-foreground hover:border-accent"
+  }`;
 
 interface RepoLabelPickerProps {
   /** State and actions from `useRepoLabels()`, owned by the parent so it can read the choice. */
@@ -100,12 +108,13 @@ export function RepoLabelPicker({
         )}
         {status.kind === "ready" && status.labels.length === 0 && (
           <p className="rounded-md bg-surface-muted px-4 py-3 text-sm">
-            {status.repo} has no labels. You can still follow every new issue.
+            {status.repo} has no labels. You can still follow every new issue, or only those with no
+            open PR.
           </p>
         )}
       </div>
 
-      {status.kind === "ready" && status.labels.length > 0 && (
+      {status.kind === "ready" && (
         <div className="flex flex-col gap-3">
           <div className="flex flex-wrap items-end justify-between gap-2">
             <p className="text-sm font-semibold">
@@ -127,6 +136,17 @@ export function RepoLabelPicker({
             )}
           </div>
           <ul className="flex flex-wrap gap-2">
+            <li>
+              <button
+                type="button"
+                aria-pressed={selected.has(HAS_NO_OPEN_PR)}
+                onClick={() => toggle(HAS_NO_OPEN_PR)}
+                title="Only issues with no open pull request linked to them"
+                className={chipClasses(selected.has(HAS_NO_OPEN_PR))}
+              >
+                {HAS_NO_OPEN_PR_NAME}
+              </button>
+            </li>
             {visibleLabels.map((label) => {
               const isSelected = selected.has(label.name);
               return (
@@ -136,11 +156,7 @@ export function RepoLabelPicker({
                     aria-pressed={isSelected}
                     onClick={() => toggle(label.name)}
                     title={label.description ?? undefined}
-                    className={`inline-flex min-h-9 items-center gap-2 rounded-full border px-3 text-sm font-semibold transition-colors ${
-                      isSelected
-                        ? "border-highlight bg-highlight text-highlight-foreground"
-                        : "border-border bg-chip text-chip-foreground hover:border-accent"
-                    }`}
+                    className={chipClasses(isSelected)}
                   >
                     <span
                       aria-hidden="true"

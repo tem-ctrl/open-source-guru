@@ -392,7 +392,7 @@
         "tags": [
           "Subscriptions"
         ],
-        "description": "Emails you when an issue is opened with one of the labels, or when one of the labels is added to an issue. With no labels, every new issue matches.",
+        "description": "Emails you when an issue is opened with one of the labels, or when one of the labels is added to an issue. With no labels, every new issue matches. Add `has_no_open_pr` to `labels` to also require that the issue has no open linked pull request.",
         "requestBody": {
           "required": true,
           "content": {

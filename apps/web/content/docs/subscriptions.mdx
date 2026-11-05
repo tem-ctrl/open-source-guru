@@ -20,6 +20,22 @@ Labels are compared **without regard to case**: `Help Wanted` and `help wanted` 
 
 With **no label**, you hear about every new issue in the repository.
 
+### has no open pr
+
+**has no open pr** appears with the labels of every repository, but it isn't a GitHub label: it
+limits your emails to issues that nobody has an open pull request for yet. In the API, add
+`has_no_open_pr` to `labels`.
+
+- It applies on top of your labels, whether they combine with **any** or **all**. On its own, it
+  means any issue with no open PR.
+- A pull request counts when it's linked to the issue, with a closing keyword like `Fixes #123` or
+  from the issue's **Development** section. Draft pull requests count; a pull request that only
+  mentions the issue doesn't.
+- It's checked once, when we detect the new issue or label. A pull request opened after that doesn't
+  cancel an email, including one waiting for your hourly or daily digest, and an issue that was
+  skipped doesn't come back if its pull request is later closed.
+- It counts toward the limit of 20 labels.
+
 ### Any or all
 
 When you pick two labels or more, choose how they combine:
